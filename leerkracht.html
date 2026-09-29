@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leerkrachtenoverzicht — Nando Oefentaak</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="mascot">📊</div>
+    <div>
+      <h1>Leerkrachtenoverzicht</h1>
+      <p>Resultaten van de oefentaak — Module 1: Inzicht in getallen</p>
+    </div>
+  </header>
+
+  <div id="login-panel" class="panel">
+    <p>Meld je aan met je leerkrachtenaccount (Google) om de resultaten te bekijken.</p>
+    <button class="btn google" onclick="teacherLogin()">🔐 Aanmelden met Google</button>
+    <p id="access-msg" class="hidden" style="color:#C62828;margin-top:12px;"></p>
+  </div>
+
+  <div id="dash" class="hidden">
+    <div class="panel">
+      <label>Filter op klas: </label>
+      <select id="klas-filter" onchange="renderTable()">
+        <option value="">Alle klassen</option>
+        <option value="NG1">NG1</option>
+        <option value="NG2a">NG2a</option>
+        <option value="NG2b">NG2b</option>
+        <option value="NG2c">NG2c</option>
+        <option value="NG2d">NG2d</option>
+        <option value="NG2e">NG2e</option>
+        <option value="NG3">NG3</option>
+      </select>
+      <button class="btn secondary" style="margin-left:10px;" onclick="loadSubmissions()">🔄 Vernieuwen</button>
+      <div id="stats" class="stat-pills"></div>
+    </div>
+
+    <div class="panel">
+      <table class="teacher" id="table">
+        <thead>
+          <tr><th>Naam</th><th>E-mail</th><th>Klas</th><th>Score</th><th>Bonus</th><th>%</th><th>Pogingen</th><th>Laatst ingediend</th></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Nando Oefentaak · leerkrachtenoverzicht (enkel zichtbaar voor toegelaten e-mailadressen, zie firestore.rules)</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let allRows = [];
+
+function teacherLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(() => {
+    document.getElementById('login-panel').classList.add('hidden');
+    document.getElementById('dash').classList.remove('hidden');
+    loadSubmissions();
+  }).catch(err => { alert('Aanmelden mislukt: ' + err.message); });
+}
+
+function loadSubmissions() {
+  db.collection('submissions').get().then(snap => {
+    allRows = [];
+    snap.forEach(doc => allRows.push(doc.data()));
+    renderTable();
+  }).catch(err => {
+    const msg = document.getElementById('access-msg');
+    msg.textContent = 'Je hebt geen toegang tot dit overzicht, of er ging iets mis (' + err.message + '). ' +
+      'Vraag de beheerder om jouw e-mailadres toe te voegen aan firestore.rules.';
+    msg.classList.remove('hidden');
+    document.getElementById('dash').classList.add('hidden');
+    document.getElementById('login-panel').classList.remove('hidden');
+  });
+}
+
+function fmtNum(n) { if (n === undefined || n === null || n === '') return ''; return (Math.round(n * 100) / 100).toString().replace('.', ','); }
+function fmtDate(ts) {
+  if (!ts || !ts.toDate) return '—';
+  const d = ts.toDate();
+  return d.toLocaleDateString('nl-BE') + ' ' + d.toLocaleTimeString('nl-BE', {hour:'2-digit', minute:'2-digit'});
+}
+
+function renderTable() {
+  const filter = document.getElementById('klas-filter').value;
+  let rows = allRows.filter(r => !filter || r.klas === filter);
+  rows.sort((a, b) => (a.klas || '').localeCompare(b.klas || '') || (a.naam || '').localeCompare(b.naam || ''));
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = rows.map(r => `<tr>
+      <td>${r.naam || ''}</td>
+      <td>${r.email || ''}</td>
+      <td>${r.klas || ''}</td>
+      <td>${fmtNum(r.score)} / ${fmtNum(r.max)}</td>
+      <td>${fmtNum(r.bonusScore ?? 0)} / ${fmtNum(r.bonusMax ?? 0)}</td>
+      <td>${r.percentage ?? ''}%</td>
+      <td>${r.pogingen ?? 1}</td>
+      <td>${fmtDate(r.laatstIngediend)}</td>
+    </tr>`).join('') || '<tr><td colspan="8">Nog geen resultaten voor deze klas.</td></tr>';
+
+  const stats = document.getElementById('stats');
+  const totaal = allRows.length;
+  const perKlas = {};
+  allRows.forEach(r => { perKlas[r.klas] = (perKlas[r.klas] || 0) + 1; });
+  stats.innerHTML = `<span class="stat-pill">Totaal ingediend: ${totaal}</span>` +
+    Object.keys(perKlas).sort().map(k => `<span class="stat-pill">${k}: ${perKlas[k]}</span>`).join('');
+}
+</script>
+</body>
+</html>

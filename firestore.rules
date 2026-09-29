@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Eén document per leerling, met de UID van de leerling als document-ID.
+    match /submissions/{studentUid} {
+
+      // Een leerling mag enkel zijn/haar EIGEN resultaat lezen.
+      // Een leerkracht (e-mailadres hieronder) mag ALLE resultaten lezen.
+      allow read: if request.auth != null &&
+        (
+          request.auth.uid == studentUid ||
+          request.auth.token.email in [
+            "vul.leerkracht1@voorbeeld.be",
+            "vul.leerkracht2@voorbeeld.be"
+          ]
+        );
+
+      // Een leerling mag enkel zijn/haar EIGEN resultaat aanmaken/bijwerken,
+      // en enkel als die is ingelogd met een @svsl.be-account.
+      // (Dit is de echte, servergebonden beveiliging — de "hd"-instelling
+      // in firebase-config.js is enkel een gebruiksvriendelijk hulpmiddel.)
+      allow write: if request.auth != null
+        && request.auth.uid == studentUid
+        && request.auth.token.email.matches('.*@svsl[.]be$');
+    }
+  }
+}
+
+/* ------------------------------------------------------------
+   BELANGRIJK: pas de lijst met leerkrachten-e-mailadressen
+   hierboven aan (regel met "vul.leerkracht1@voorbeeld.be", ...)
+   vooraleer je deze regels publiceert in de Firebase Console
+   (Firestore Database > Regels > plakken > Publiceren).
+   ------------------------------------------------------------ */

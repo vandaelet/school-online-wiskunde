@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nando Oefentaak — Module 1: Inzicht in getallen</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="mascot">🌶️</div>
+    <div>
+      <h1>Nando's Oefentaak</h1>
+      <p>Module 1 — Inzicht in getallen · ter voorbereiding van de herhalingstoets</p>
+    </div>
+  </header>
+
+  <!-- ============ AANMELDEN ============ -->
+  <div id="login-section" class="panel">
+    <div id="login-step1">
+      <p>Meld je aan met je (school-)Google-account om te starten.</p>
+      <button class="btn google" onclick="login()">🔐 Aanmelden met Google</button>
+    </div>
+    <div id="login-step2" class="hidden">
+      <p id="login-name"></p>
+      <p>In welke klasgroep zit je?</p>
+      <select id="klas-select">
+        <option value="">— kies je klas —</option>
+        <option value="NG1">NG1</option>
+        <option value="NG2a">NG2a</option>
+        <option value="NG2b">NG2b</option>
+        <option value="NG2c">NG2c</option>
+        <option value="NG2d">NG2d</option>
+        <option value="NG2e">NG2e</option>
+        <option value="NG3">NG3</option>
+      </select>
+      <br><br>
+      <button class="btn" onclick="startQuiz()">Start de oefentaak 🚀</button>
+    </div>
+  </div>
+
+  <!-- ============ OEFENTAAK ============ -->
+  <div id="quiz-section" class="hidden">
+    <div id="result-banner" class="hidden"></div>
+
+    <div class="panel">
+      <p>💡 Deze oefentaak duurt ongeveer <b>30 tot 40 minuten</b> en overloopt de volledige module.
+      Ze telt niet mee voor punten, maar helpt je om je zwakke plekken op te sporen vóór de grote toets.
+      Na het indienen zie je meteen je score én de volledige correctiesleutel.</p>
+    </div>
+
+    <div id="quiz-list"></div>
+
+    <div class="submit-wrap">
+      <button id="submit-btn" class="btn" onclick="submitQuiz()">✅ Indienen en resultaat bekijken</button>
+    </div>
+  </div>
+
+  <footer>Nando Oefentaak · gemaakt voor Module 1: Inzicht in getallen</footer>
+</div>
+
+<!-- Firebase (Google-account login + resultaten opslaan) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
