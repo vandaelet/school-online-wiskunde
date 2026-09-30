@@ -10,12 +10,12 @@
    ============================================================ */
 
 const firebaseConfig = {
-  apiKey: "VUL_HIER_IN",
-  authDomain: "VUL_HIER_IN.firebaseapp.com",
-  projectId: "VUL_HIER_IN",
-  storageBucket: "VUL_HIER_IN.appspot.com",
-  messagingSenderId: "VUL_HIER_IN",
-  appId: "VUL_HIER_IN"
+  apiKey: "AIzaSyD3AcM74bLpQk8dgxO2MllogCIkr2vBPSY",
+  authDomain: "school-online-576be.firebaseapp.com",
+  projectId: "school-online-576be",
+  storageBucket: "school-online-576be.firebasestorage.app",
+  messagingSenderId: "662244717899",
+  appId: "1:662244717899:web:fbefd83717cc2270dba4ce"
 };
 
 /* Optioneel maar aangeraden: beperk het inloggen tot het
