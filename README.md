@@ -85,6 +85,12 @@ Deel gewoon de link naar `index.html` (bv. via Smartschool, e-mail of een
 QR-code). Leerlingen hoeven niets te installeren — enkel een Google-account en
 een internetverbinding.
 
+Onderaan de oefentaak staat ook een link **"Leerkracht? Bekijk hier de
+resultaten van je leerlingen →"** die rechtstreeks naar `leerkracht.html`
+doorklikt. Leerlingen die daarop klikken, zien enkel een melding dat ze geen
+toegang hebben (dat wordt afgedwongen door `firestore.rules`), dus dit is
+veilig om zichtbaar te laten staan.
+
 ---
 
 ## Veelgestelde vragen

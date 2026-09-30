@@ -67,6 +67,10 @@ function fracInput(id) {
       <input type="text" id="${id}-d" inputmode="numeric" maxlength="4">
     </span>`;
 }
+/* Niet-bewerkbare breukweergave voor in de opgave zelf (teller boven, noemer onder de streep). */
+function fracDisplay(num, den) {
+  return `<span class="frac-display"><span class="frac-num">${num}</span><span class="frac-bar-auto"></span><span class="frac-den">${den}</span></span>`;
+}
 function gradeFraction(id, expNum, expDen) {
   const n = intVal(id + '-n'), d = intVal(id + '-d');
   if (n === null || d === null || d === 0) {
@@ -215,44 +219,82 @@ QUESTIONS.push({
 });
 
 /* ---- Q8 : Priemfactorisatie — ladder met streep ---- */
-QUESTIONS.push({
-  id: 'q8', section: '4. Veelvouden en delers', points: 2,
-  html: `<p>Ontbind <b>60</b> in priemfactoren. Vul bij elke stap de priemfactor rechts van de streep in
-      (net zoals in je cursus) en begin met de kleinste priemfactor.</p>
-    <div class="ladder">
-      <div class="ladder-row"><span class="ladder-num" id="q8-n0">60</span><span class="ladder-bar"></span><input class="ladder-input" id="q8-p1" inputmode="numeric" maxlength="3"></div>
-      <div class="ladder-row"><span class="ladder-num" id="q8-n1">?</span><span class="ladder-bar"></span><input class="ladder-input" id="q8-p2" inputmode="numeric" maxlength="3"></div>
-      <div class="ladder-row"><span class="ladder-num" id="q8-n2">?</span><span class="ladder-bar"></span><input class="ladder-input" id="q8-p3" inputmode="numeric" maxlength="3"></div>
-      <div class="ladder-row"><span class="ladder-num" id="q8-n3">?</span><span class="ladder-bar"></span><input class="ladder-input" id="q8-p4" inputmode="numeric" maxlength="3"></div>
-      <div class="ladder-row final"><span class="ladder-num" id="q8-n4">?</span></div>
-    </div>
-    <p class="hint">Tip: 60 wordt stap voor stap gedeeld tot je bij 1 uitkomt.</p>`,
-  grade() {
-    const primes = [intVal('q8-p1'), intVal('q8-p2'), intVal('q8-p3'), intVal('q8-p4')];
-    const allFilled = primes.every(p => p !== null);
-    if (!allFilled) return { earned: 0, max: 2, correct: '60 = 2 · 2 · 3 · 5.' };
-    const product = primes.reduce((a, b) => a * b, 1);
-    const allPrime = primes.every(isPrime);
-    if (product === 60 && allPrime) return { earned: 2, max: 2, correct: 'Correct! 60 = 2 · 2 · 3 · 5.' };
-    if (product === 60) return { earned: 1, max: 2, correct: 'Het product klopt (60), maar niet elke factor is een priemgetal. Juiste priemfactorisatie: 60 = 2 · 2 · 3 · 5.' };
-    return { earned: 0, max: 2, correct: 'Juiste priemfactorisatie: 60 = 2 · 2 · 3 · 5.' };
+/* Elke oefening bestaat uit twee onderdelen die apart scoren:
+   1) de ladder zelf correct invullen (2 p)
+   2) de priemfactorisatie eronder voluit als product opschrijven (1 p) */
+const LADDER_SETUPS = []; // wordt gevuld door makeFactorQuestion, en na het bouwen van de pagina één keer doorlopen
+
+function ladderHTML(qid, target, steps) {
+  let rows = `<div class="ladder-row"><span class="ladder-num" id="${qid}-n0">${target}</span><span class="ladder-bar"></span><input class="ladder-input" id="${qid}-p1" inputmode="numeric" maxlength="3"></div>`;
+  for (let i = 2; i <= steps; i++) {
+    rows += `<div class="ladder-row"><span class="ladder-num" id="${qid}-n${i - 1}">?</span><span class="ladder-bar"></span><input class="ladder-input" id="${qid}-p${i}" inputmode="numeric" maxlength="3"></div>`;
   }
-});
-function setupLadder() {
-  function recompute() {
-    let n = 60;
-    document.getElementById('q8-n0').textContent = '60';
-    for (let i = 1; i <= 4; i++) {
-      const p = intVal('q8-p' + i);
-      let next = '?';
-      if (n !== null && p && p > 0 && n % p === 0) { next = n / p; }
-      else { n = null; }
-      document.getElementById('q8-n' + i).textContent = next;
-      n = (next === '?') ? null : next;
+  rows += `<div class="ladder-row final"><span class="ladder-num" id="${qid}-n${steps}">?</span></div>`;
+  return `<div class="ladder">${rows}</div>`;
+}
+function buildFactorString(target, expectedSorted) { return `${target} = ${expectedSorted.join(' · ')}`; }
+function gradeLadderPoints(qid, target, steps) {
+  const primes = [];
+  for (let i = 1; i <= steps; i++) primes.push(intVal(qid + '-p' + i));
+  if (primes.some(p => p === null)) return 0;
+  const product = primes.reduce((a, b) => a * b, 1);
+  const allPrime = primes.every(isPrime);
+  if (product === target && allPrime) return 2;
+  if (product === target) return 1;
+  return 0;
+}
+function gradeWrittenFactorPoints(id, target, expectedSorted) {
+  let nums = (val(id).match(/\d+/g) || []).map(Number);
+  if (nums.length === 0) return 0;
+  if (nums[0] === target && nums.length > 1) nums = nums.slice(1); // negeer een eventueel voorop geschreven "60 ="
+  const product = nums.reduce((a, b) => a * b, 1);
+  const sorted = nums.slice().sort((a, b) => a - b);
+  return (product === target && nums.every(isPrime) && sameArr(sorted, expectedSorted)) ? 1 : 0;
+}
+function makeFactorQuestion(id, target, expectedFactors) {
+  const steps = expectedFactors.length;
+  const expectedSorted = expectedFactors.slice().sort((a, b) => a - b);
+  LADDER_SETUPS.push({ id, target, steps });
+  return {
+    id, section: '4. Veelvouden en delers', points: 3,
+    html: `<p>Ontbind <b>${target}</b> in priemfactoren. Vul bij elke stap de priemfactor rechts van de streep in
+        (net zoals in je cursus) en begin met de kleinste priemfactor.</p>
+      ${ladderHTML(id, target, steps)}
+      <p class="hint">Tip: ${target} wordt stap voor stap gedeeld tot je bij 1 uitkomt.</p>
+      <p>Schrijf nu, net zoals in je cursus, de volledige priemfactorisatie op als een product:</p>
+      <p>${target} = <input type="text" id="${id}-w" size="22" placeholder="bv. 2 · 2 · 3 · 5"></p>`,
+    grade() {
+      const ladderPts = gradeLadderPoints(id, target, steps);
+      const writtenPts = gradeWrittenFactorPoints(id + '-w', target, expectedSorted);
+      const earned = ladderPts + writtenPts;
+      let correct = `Juiste priemfactorisatie: <b>${buildFactorString(target, expectedSorted)}</b>.`;
+      if (ladderPts < 2) correct += ` (ladder: ${ladderPts}/2)`;
+      if (writtenPts < 1) correct += ` (opgeschreven als product: ${writtenPts}/1 — schrijf dit voluit als ${buildFactorString(target, expectedSorted)})`;
+      return { earned, max: 3, correct };
     }
-  }
-  ['q8-p1', 'q8-p2', 'q8-p3', 'q8-p4'].forEach(id => {
-    document.getElementById(id).addEventListener('input', recompute);
+  };
+}
+QUESTIONS.push(makeFactorQuestion('q8a', 30, [2, 3, 5]));
+QUESTIONS.push(makeFactorQuestion('q8b', 84, [2, 2, 3, 7]));
+QUESTIONS.push(makeFactorQuestion('q8c', 72, [2, 2, 2, 3, 3]));
+
+function setupLadder() {
+  LADDER_SETUPS.forEach(({ id, target, steps }) => {
+    function recompute() {
+      let n = target;
+      document.getElementById(id + '-n0').textContent = target;
+      for (let i = 1; i <= steps; i++) {
+        const p = intVal(id + '-p' + i);
+        let next = '?';
+        if (n !== null && p && p > 0 && n % p === 0) { next = n / p; }
+        else { n = null; }
+        document.getElementById(id + '-n' + i).textContent = next;
+        n = (next === '?') ? null : next;
+      }
+    }
+    for (let i = 1; i <= steps; i++) {
+      document.getElementById(id + '-p' + i).addEventListener('input', recompute);
+    }
   });
 }
 
@@ -312,8 +354,8 @@ QUESTIONS.push({
 QUESTIONS.push({
   id: 'q12', section: '6. Breuken', points: 2,
   html: `<p>Vereenvoudig tot een onvereenvoudigbare breuk.</p>
-    <p>a) 18/24 = ${fracInput('q12-a')}</p>
-    <p>b) 20/50 = ${fracInput('q12-b')}</p>`,
+    <p>a) ${fracDisplay(18, 24)} = ${fracInput('q12-a')}</p>
+    <p>b) ${fracDisplay(20, 50)} = ${fracInput('q12-b')}</p>`,
   grade() {
     const r1 = gradeFraction('q12-a', 3, 4);
     const r2 = gradeFraction('q12-b', 2, 5);
@@ -325,8 +367,8 @@ QUESTIONS.push({
 QUESTIONS.push({
   id: 'q13', section: '6. Breuken', points: 2,
   html: `<p>Bereken en noteer als onvereenvoudigbare breuk.</p>
-    <p>a) 1/4 + 1/6 = ${fracInput('q13-a')}</p>
-    <p>b) 5/6 − 1/3 = ${fracInput('q13-b')}</p>`,
+    <p>a) ${fracDisplay(1, 4)} + ${fracDisplay(1, 6)} = ${fracInput('q13-a')}</p>
+    <p>b) ${fracDisplay(5, 6)} − ${fracDisplay(1, 3)} = ${fracInput('q13-b')}</p>`,
   grade() {
     const r1 = gradeFraction('q13-a', 5, 12);
     const r2 = gradeFraction('q13-b', 1, 2);
