@@ -218,6 +218,39 @@ QUESTIONS.push({
   }
 });
 
+/* ---- Q7b : Deelbaarheidskenmerken (aanvinktabel) ---- */
+const DEELBAAR_GETALLEN = [126, 300];
+const DEELBAAR_DOOR = [2, 3, 4, 6, 9, 10];
+const DEELBAAR_CORRECT = {
+  126: { 2: true, 3: true, 4: false, 6: true, 9: true, 10: false },
+  300: { 2: true, 3: true, 4: true, 6: true, 9: false, 10: true },
+};
+QUESTIONS.push({
+  id: 'q7b', section: '4. Veelvouden en delers', points: 3,
+  html: `<p>Duid voor elk getal aan door welke van deze getallen het deelbaar is. Denk aan de kenmerken van deelbaarheid uit je cursus.</p>
+    <table class="grid">
+      <tr><th>getal</th>${DEELBAAR_DOOR.map(d => `<th>${d}</th>`).join('')}</tr>
+      ${DEELBAAR_GETALLEN.map(g => `<tr><td class="rowlabel">${g}</td>${DEELBAAR_DOOR.map(d => `<td><input type="checkbox" id="q7b-${g}-${d}"></td>`).join('')}</tr>`).join('')}
+    </table>`,
+  grade() {
+    let correctCells = 0, totalCells = 0;
+    const details = [];
+    DEELBAAR_GETALLEN.forEach(g => {
+      const juist = [];
+      DEELBAAR_DOOR.forEach(d => {
+        totalCells++;
+        const checked = document.getElementById(`q7b-${g}-${d}`).checked;
+        const expected = DEELBAAR_CORRECT[g][d];
+        if (checked === expected) correctCells++;
+        if (expected) juist.push(d);
+      });
+      details.push(`${g} is deelbaar door ${juist.join(', ')}`);
+    });
+    const earned = Math.round(correctCells * (3 / totalCells) * 4) / 4; // afgerond op kwarten
+    return { earned, max: 3, correct: details.join(' — ') + '.' };
+  }
+});
+
 /* ---- Q8 : Priemfactorisatie — ladder met streep ---- */
 /* Elke oefening bestaat uit twee onderdelen die apart scoren:
    1) de ladder zelf correct invullen (2 p)
@@ -333,6 +366,25 @@ QUESTIONS.push({
   }
 });
 
+/* ---- Q10b : Implicatiepijl — zelf een tegenvoorbeeld zoeken ---- */
+QUESTIONS.push({
+  id: 'q10n', section: '5. Symbolen en verzamelingen', points: 2,
+  html: `<p>Uitspraak: <b>x is een veelvoud van 6 ⇒ x is een veelvoud van 12.</b></p>
+    <p>Klopt deze implicatie?</p>
+    ${tfButtons('q10n', 'WAAR', 'NIET WAAR')}
+    <p style="margin-top:10px;">Klopt ze niet, geef dan een tegenvoorbeeld: een waarde voor x waarvoor de uitspraak fout is.</p>
+    <p>x = <input type="text" id="q10n-x" size="6"></p>`,
+  grade() {
+    const judgeOk = window.tfState['q10n'] === false;
+    const xval = intVal('q10n-x');
+    const exampleOk = xval !== null && xval % 6 === 0 && xval % 12 !== 0;
+    const earned = (judgeOk ? 1 : 0) + (exampleOk ? 1 : 0);
+    let correct = 'NIET WAAR — niet elk veelvoud van 6 is ook een veelvoud van 12.';
+    correct += exampleOk ? ' Jouw tegenvoorbeeld klopt!' : ' Geldig tegenvoorbeeld: x = 6 (ook 18, 30, 42, ... zijn goed): een veelvoud van 6, maar niet van 12.';
+    return { earned, max: 2, correct };
+  }
+});
+
 /* ---- Q11 : Equivalentiepijl ---- */
 QUESTIONS.push({
   id: 'q11', section: '5. Symbolen en verzamelingen', points: 1,
@@ -363,16 +415,37 @@ QUESTIONS.push({
   }
 });
 
-/* ---- Q13 : Breuken optellen/aftrekken ---- */
+/* ---- Q13 : Breuken optellen/aftrekken (met tussenstap: gelijknamig maken) ---- */
+function fracEquivalent(n1, d1, n2, d2) {
+  if (!d1 || !d2) return false;
+  return n1 * d2 === n2 * d1;
+}
+function gradeCommonDenom(id1, id2, on1, od1, on2, od2) {
+  const n1 = intVal(id1 + '-n'), d1 = intVal(id1 + '-d');
+  const n2 = intVal(id2 + '-n'), d2 = intVal(id2 + '-d');
+  if ([n1, d1, n2, d2].some(v => v === null) || d1 === 0 || d2 === 0) return 0;
+  if (d1 !== d2) return 0;
+  if (!fracEquivalent(n1, d1, on1, od1)) return 0;
+  if (!fracEquivalent(n2, d2, on2, od2)) return 0;
+  return 1;
+}
 QUESTIONS.push({
-  id: 'q13', section: '6. Breuken', points: 2,
-  html: `<p>Bereken en noteer als onvereenvoudigbare breuk.</p>
-    <p>a) ${fracDisplay(1, 4)} + ${fracDisplay(1, 6)} = ${fracInput('q13-a')}</p>
-    <p>b) ${fracDisplay(5, 6)} − ${fracDisplay(1, 3)} = ${fracInput('q13-b')}</p>`,
+  id: 'q13', section: '6. Breuken', points: 4,
+  html: `<p>Bereken. Maak eerst gelijknamig (stap 1) en noteer daarna het antwoord als onvereenvoudigbare breuk (stap 2).</p>
+    <p><b>a)</b> ${fracDisplay(1, 4)} + ${fracDisplay(1, 6)}</p>
+    <p>Stap 1 — gelijknamig maken: ${fracInput('q13-a-g1')} + ${fracInput('q13-a-g2')}</p>
+    <p>Stap 2 — antwoord: ${fracInput('q13-a')}</p>
+    <p style="margin-top:16px;"><b>b)</b> ${fracDisplay(5, 6)} − ${fracDisplay(1, 3)}</p>
+    <p>Stap 1 — gelijknamig maken: ${fracInput('q13-b-g1')} − ${fracInput('q13-b-g2')}</p>
+    <p>Stap 2 — antwoord: ${fracInput('q13-b')}</p>`,
   grade() {
+    const g1 = gradeCommonDenom('q13-a-g1', 'q13-a-g2', 1, 4, 1, 6);
     const r1 = gradeFraction('q13-a', 5, 12);
+    const g2 = gradeCommonDenom('q13-b-g1', 'q13-b-g2', 5, 6, 1, 3);
     const r2 = gradeFraction('q13-b', 1, 2);
-    return { earned: r1.earned + r2.earned, max: 2, correct: `a) 5/12. b) 1/2.` };
+    const earned = g1 + r1.earned + g2 + r2.earned;
+    const correct = `a) gelijknamig: 3/12 + 2/12, antwoord: 5/12. b) gelijknamig: 5/6 − 2/6, antwoord: 1/2.`;
+    return { earned, max: 4, correct };
   }
 });
 
